@@ -1,27 +1,33 @@
 import random
 import Characters
-from Util import WIDTH, HEIGHT
+from Util import *
 
 class Grid:
-    W, H = 200, 200
-    MAPX, MAPY = WIDTH - 2, 0
-    MAPS = 7
+    W, H = UIBAR, UIBAR
+    MAPX, MAPY = WIDTH, 0
+    MAPS = 5
     CELLW, CELLH = W/MAPS, H/MAPS
-    GAP = 5
-    def __init__(self, app, size, n, depth):
+    GAP = 2
+    def __init__(self, app):
         self.app = app
-        self.size = size
+        self.depth = -1
+        self.player = Characters.Player(self)
+        self.nextLevel()
+
+    def nextLevel(self):
+        self.depth += 1
+        depth = self.depth
+        self.size = depth + 6
         self.grid = [[Room(self, r, c) for c in range(self.size)]
                      for r in range(self.size)]
-        self.n = n
+        self.n = min(20, roundHalfUp(MULTIPLIER * depth + random.randint(EXTRA, EXTRA + 1)))
         self.depth = depth
         self.wilson()
-        self.rooms = []
         self.hub = self.end = None
+        self.rooms = []
         self.chooseRoom()
         self.pos = 0
-        self.player = Characters.Player(self)
-        self.rooms = [DungeonRoom(r, self.player) for r in self.rooms]
+        self.rooms = [(BossRoom if r.id == 1 else DungeonRoom)(r, self.player) for r in self.rooms]
         for r in self.rooms:
             self[r.r, r.c] = r
         for r in self.rooms:
@@ -33,18 +39,21 @@ class Grid:
                 r.S = self[r.S.r, r.S.c]
             if r.W:
                 r.W = self[r.W.r, r.W.c]
-        self.player.room = self.currentRoom
-
-    def moveTo(self, direction):
+        self.moveTo()
+    def moveTo(self, direction=4):
         if direction == 0:
-            self.pos = self.getPos(self.currentRoom.N)
+            self.pos = self.currentRoom.N.id
         elif direction == 1:
-            self.pos = self.getPos(self.currentRoom.E)
+            self.pos = self.currentRoom.E.id
         elif direction == 2:
-            self.pos = self.getPos(self.currentRoom.S)
+            self.pos = self.currentRoom.S.id
         elif direction == 3:
-            self.pos = self.getPos(self.currentRoom.W)
+            self.pos = self.currentRoom.W.id
         self.player.setPos(direction)
+        if not self.currentRoom.visited:
+            self.currentRoom.initMap()
+            self.currentRoom.visited = True
+
     def getPos(self, room):
         return self.rooms.index(room)
     @property
@@ -74,14 +83,46 @@ class Grid:
                     self[r, c] = None
     def draw(self, canvas):
         self.currentRoom.draw(canvas)
+        canvas.create_rectangle(self.MAPX, self.MAPY, self.MAPX+self.W, self.MAPY+self.H,
+                                fill="black")
+        self.drawMap(canvas, self.currentRoom, self.MAPS//2, self.MAPS//2)
+        canvas.create_text(WIDTH+MARGIN, 230+2*MARGIN, text=f"Depth: {self.depth+1}",
+                           font="Arial 30", anchor="nw")
 
-    def drawMap(self, canvas, room, x, y, *, start=False, near=False):
-        canvas.create_rectangle(x*)
+    def drawMap(self, canvas, room, x, y, *, near=False, came=None):
+        canvas.create_rectangle(x*self.CELLW+self.MAPX+self.GAP, y*self.CELLH+self.MAPY +self.GAP,
+                                (x+1)*self.CELLW+self.MAPX-self.GAP, (y+1)*self.CELLH+self.MAPY-self.GAP,
+                                fill="#888888" if near else "#cccccc")
+        if room.isBoss:
+            canvas.create_text((x+.5)*self.CELLW+self.MAPX-self.GAP, (y+.5)*self.CELLH+self.MAPY-self.GAP,
+                               fill="red", text="BOSS", font=f'Arial {int(self.CELLH/4)}')
         if near:
             return
+        delta = [(0, -1), (1, 0), (0, 1), (-1, 0)]
+        for i, ((dx, dy), nextRoom) in enumerate(zip(delta, room.neighbors)):
+            if nextRoom is None or not (0<=x+dx<self.MAPS and 0<=y+dy<self.MAPS) or nextRoom is came:
+                continue
 
-
-
+            if i == 0 or i == 2:
+                lineX = (x + .5) * self.CELLW + self.MAPX
+                if i == 0:
+                    lineY = y*self.CELLH+self.MAPY
+                else:
+                    lineY = (y+1) * self.CELLH + self.MAPY
+                canvas.create_line(lineX, lineY-self.GAP, lineX, lineY+self.GAP,
+                                   width=4, fill="#cccccc")
+            elif i == 1 or i == 3:
+                lineY = (y + .5) * self.CELLH + self.MAPY
+                if i == 1:
+                    lineX = (x+1)*self.CELLW+self.MAPX
+                else:
+                    lineX = x * self.CELLW + self.MAPX
+                canvas.create_line(lineX-self.GAP, lineY, lineX+self.GAP, lineY,
+                                   width=4, fill="#cccccc")
+            if not nextRoom.visited:
+                self.drawMap(canvas, nextRoom, x+dx, y+dy, near=True)
+                continue
+            self.drawMap(canvas, nextRoom, x+dx, y+dy, came=room)
 
 
     def wilson(self):
@@ -173,15 +214,10 @@ class Room:
         pass
 
 
-class Tile:
+def main():
     pass
 
-
-def main():
-    grid = Grid(6, 10)
-    print(grid.rooms)
-
-from Rooms import DungeonRoom
+from Rooms import DungeonRoom, BossRoom
 
 if __name__ == '__main__':
     main()

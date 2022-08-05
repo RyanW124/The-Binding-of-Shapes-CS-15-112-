@@ -2,27 +2,37 @@ import decimal
 
 WIDTH, HEIGHT = 995, 545
 SIZE = 75
+UIBAR = 200
+MARGIN = 10
+UIX = WIDTH-UIBAR
+ROWS, COLS = 7, 13
+EXTRA = 5
+MULTIPLIER = 1.33
+TOTALWIDTH=WIDTH+UIBAR
 
+GAME, LOST = MODES = range(2)
+
+
+# code from hw starter files
 def roundHalfUp(d):
     rounding = decimal.ROUND_HALF_UP
     return int(decimal.Decimal(d).to_integral_value(rounding=rounding))
 
 def RCtoXY(r, c):
-    s = 75
-    m = 10
-    return s*(c+.5)+m, s*(r+.5)+m
+    return SIZE*(c+.5)+MARGIN, SIZE*(r+.5)+MARGIN
 
 def XYtoRC(x, y):
-    s = 75
-    m = 10
-    return (y-m)//s, (x-m)//s
+    return int((y-MARGIN)/SIZE), int((x-MARGIN)/SIZE)
 
 class Timer:
-    def __init__(self, duration, loop=False):
+    def __init__(self, duration, *, loop=False, paused=False):
         self.time = 0
         self.duration = duration
         self.loop = loop
+        self.paused = paused
     def update(self):
+        if self.paused:
+            return
         if self.time < self.duration:
             self.time += 1
         else:
@@ -30,6 +40,10 @@ class Timer:
                 self.time = 0
             return True
         return False
+    def pause(self):
+        self.paused = True
+    def resume(self):
+        self.paused = False
     def reset(self):
         self.time = 0
     def ended(self):
@@ -64,12 +78,20 @@ class Vector2:
 
     def __imul__(self, other):
         return self * other
+    def unpack(self):
+        return self.x, self.y
+    def __neg__(self):
+        return Vector2(-self.x, -self.y)
     def copy(self):
         return Vector2(self.x, self.y)
     def __abs__(self):
         return self.magnitude()
     def __repr__(self):
         return f"Vector2({self.x}, {self.y})"
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+    def __ne__(self, other):
+        return self.x != other.x or self.y != other.y
     @classmethod
     def N(cls, length=1):
         return Vector2(0, -length)

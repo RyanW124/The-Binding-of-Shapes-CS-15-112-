@@ -1,7 +1,8 @@
 from Shapes import Circle, Rect
 from Controller import Key
 import Projectiles
-import Util
+from Util import *
+import math, random
 
 class Damageable:
     def __init__(self, maxHealth, health=None):
@@ -9,7 +10,7 @@ class Damageable:
         self.health = maxHealth if health is None else health
         self.dead = False
     def takeDamage(self, dmg=1):
-        self.health -= dmg
+        self.health = max(0, self.health-dmg)
         self.dead = (self.health <= 0)
         return self.dead
     def heal(self, amount):
@@ -31,15 +32,15 @@ class Shooter:
                 i += 1
 
 class Monster(Damageable):
-    def __init__(self, row, col, player, speed, r, maxHealth, color, dmg=1, fireSpeed=10):
+    def __init__(self, row, col, player, speed, r, maxHealth, color, dmg=1, fireSpeed=30, *, absolutePos=False):
         super().__init__(maxHealth)
-        self.pos = Util.Vector2(*Util.RCtoXY(row, col))
+        self.pos = Vector2(row, col) if absolutePos else Vector2(*RCtoXY(row, col))
         self.player = player
         self.speed = speed
         self.body = Circle(self.pos.x, self.pos.y, r)
         self.color = color
         self.dmg = dmg
-        self.shootCD = Util.Timer(fireSpeed)
+        self.shootCD = Timer(fireSpeed)
     def move(self, delta):
         self.pos += delta
         self.body.x, self.body.y = self.pos.x, self.pos.y
@@ -49,53 +50,153 @@ class Monster(Damageable):
         self.body.x, self.body.y = self.pos.x, self.pos.y
 
     def update(self):
-        pass
+        self.shootCD.update()
+        if self.hitbox().collide(self.player.hitbox()) and self.shootCD.ended():
+            self.shootCD.reset()
+            self.player.takeDamage(self.dmg)
     def draw(self, canvas):
         self.body.draw(canvas, fill=self.color)
     def hitbox(self):
         return self.body
 
 class Fly(Monster):
-    def __init__(self, row, col, player):
-        super().__init__(row, col, player, 2, 5, 5, "blue")
+    def __init__(self, row, col, player, *, absolutePos=False):
+        super().__init__(row, col, player, 2, 5, 5, "blue", absolutePos=absolutePos)
     def update(self):
         super(Fly, self).update()
-        self.shootCD.update()
         delta = self.player.pos - self.pos
         if delta.magnitude() < self.speed:
             self.moveTo(self.player.pos)
         else:
             delta.normalize(self.speed)
             self.move(delta)
-        if self.hitbox().collide(self.player.hitbox()) and self.shootCD.ended():
-            self.shootCD.reset()
-            self.player.takeDamage(self.dmg)
+
             # print(2)
 
+class Gaper(Monster):
+    def __init__(self, row, col, player):
+        super().__init__(row, col, player, 3, 30, 10, "blue")
+        self.moving = 0
+        self.direction = None
+        self.maxMoving = SIZE/self.speed
+    def update(self):
+        super(Gaper, self).update()
+        if self.moving:
+            self.move(self.direction)
+            self.moving += 1
+            if self.moving == self.maxMoving:
+                self.moving = 0
+            return
+        r, c = XYtoRC(self.pos.x, self.pos.y)
+        djikstra = self.player.room.djikstra()
+        for delta in [Vector2.N(), Vector2.E(), Vector2.S(), Vector2.W()]:
+            nr, nc = r+delta.y, c+delta.x
+            if 0 <= nr < ROWS and 0 <= nc < COLS:
+                if djikstra[r][c] <= djikstra[nr][nc]:
+                    continue
+                direction = delta * self.speed
+                self.direction = direction
+                self.moving += 1
+                self.move(self.direction)
+                break
 
+    def draw(self, canvas):
+        super().draw(canvas)
+        canvas.create_text(self.pos.x, self.pos.y, text="Gaper")
+
+class OrbitFly(Fly):
+    SPEED = 0.1
+    RADIUS = 100
+    def __init__(self, player, duke, angle):
+        super().__init__(0, 0, player)
+        self.duke = duke
+        self.angle = angle
+        self.angleToPos()
+    def angleToPos(self):
+        x = self.RADIUS * math.cos(self.angle) + self.duke.pos.x
+        y = self.RADIUS * math.sin(self.angle) + self.duke.pos.y
+        self.moveTo(Vector2(x, y))
+    def update(self):
+        super(Fly, self).update()
+        self.angle += self.SPEED
+        self.angleToPos()
+
+
+class DukeOfFlies(Monster):
+    NSPAWN = 3
+    MAXORBIT = 4
+    MAXSPAWN = 12
+    def __init__(self, row, col, player):
+        super().__init__(row, col, player, 3, 70, 1, "blue", )
+        self.delta = Vector2.N() if random.random() >.5 else Vector2.S()
+        self.delta += Vector2.E() if random.random() >.5 else Vector2.W()
+        self.orbits = []
+        self.cd = Timer(200)
+    def spawnOrbit(self):
+        start = random.uniform(0, math.pi)
+        for i in range(self.NSPAWN):
+            fly = OrbitFly(self.player, self, start+i)
+            self.orbits.append(fly)
+            self.player.room.monsters.append(fly)
+    def spawnAttack(self):
+        self.player.room.monsters.append(Fly(self.pos.x, self.pos.y, self.player, absolutePos=True))
+    def release(self):
+        monsters = self.player.room.monsters
+        for i, m in enumerate(monsters):
+            if isinstance(m, OrbitFly):
+                fly = Fly(m.pos.x, m.pos.y, self.player, absolutePos=True)
+                fly.health = m.health
+                monsters[i] = fly
+
+
+    def takeDamage(self, dmg=1):
+        dead = super().takeDamage(dmg)
+        if self.dead:
+            self.release()
+        return dead
+
+    def update(self):
+        super().update()
+        self.cd.update()
+        self.orbits = [i for i in self.orbits if i.health>0]
+        self.move(self.delta)
+        if not (MARGIN+self.body.r<self.pos.x<WIDTH-MARGIN-self.body.r):
+            self.delta.x *= -1
+        if not (MARGIN+self.body.r<self.pos.y<HEIGHT-MARGIN-self.body.r):
+            self.delta.y *= -1
+        if len(self.player.room.monsters) < self.MAXSPAWN and self.cd.ended():
+            if len(self.orbits) >= 4:
+                self.spawnAttack()
+            else:
+                if random.random() > .5:
+                    self.spawnAttack()
+                else:
+                    self.spawnOrbit()
+            self.cd.reset()
+
+    def draw(self, canvas):
+        super().draw(canvas)
+        canvas.create_text(self.pos.x, self.pos.y, text="Duke of Flies")
 
 
 class Player(Damageable, Shooter):
-    POS = [Util.Vector2(Util.WIDTH/2, Util.HEIGHT-Util.SIZE),
-           Util.Vector2(Util.SIZE, Util.HEIGHT/2),
-           Util.Vector2(Util.WIDTH/2, Util.SIZE),
-           Util.Vector2(Util.WIDTH-Util.SIZE, Util.HEIGHT/2)]
+    POS = [Vector2(WIDTH/2, HEIGHT-SIZE),
+           Vector2(SIZE, HEIGHT/2),
+           Vector2(WIDTH/2, SIZE),
+           Vector2(WIDTH-SIZE, HEIGHT/2),
+           Vector2(WIDTH/2, HEIGHT/2)]
     def __init__(self, grid):
-        super().__init__(10, 3)
+        super().__init__(10, 6)
         super(Damageable, self).__init__()
         self.grid = grid
         self.app = grid.app
-        self.room = self.grid.currentRoom
+        self.room = None
         self.speed = 5
-        self.facing = Util.Vector2.S()
+        self.facing = Vector2.S() * self.speed
 
-        self.size = 75/2
-        margin = 10
-        self.pos = Util.Vector2(margin+13 * self.size, 100)
-        # self.x = margin+Rooms.DungeonRoom.COLUMNS / 2 * size
-        # self.y = 100
-        self.shootCD = Util.Timer(10)
-        # self.y = Rooms.DungeonRoom.ROWS / 2 * size
+        self.size = SIZE/2
+        self.pos = Vector2(MARGIN+13 * self.size, 100)
+        self.shootCD = Timer(10)
         self.body = Rect(self.pos.x, self.pos.y, self.size, self.size)
     def setPos(self, direction):
         self.pos = self.POS[direction]
@@ -110,30 +211,30 @@ class Player(Damageable, Shooter):
                 self.body.move(self.pos.x, self.pos.y)
                 break
 
-        self.pos.x = max(10+self.size/2, min(self.pos.x, self.app.width-10-self.size/2))
-        self.pos.y = max(10+self.size/2, min(self.pos.y, self.app.height-10-self.size/2))
+        self.pos.x = max(MARGIN+self.size/2, min(self.pos.x, WIDTH-MARGIN-self.size/2))
+        self.pos.y = max(MARGIN+self.size/2, min(self.pos.y, HEIGHT-MARGIN-self.size/2))
         self.body.move(self.pos.x, self.pos.y)
 
     def shoot(self):
-        self.bullets.append(Projectiles.Bullet(self.room.obstacles+self.room.monsters, self.pos, self.facing, 3))
+        self.bullets.append(Projectiles.Bullet(self.room.obstacles+self.room.monsters, self.pos, self.facing*2, 3))
         self.shootCD.reset()
 
     def hitbox(self):
         return self.body
 
     def update(self):
-        delta = Util.Vector2.ZERO()
+        delta = Vector2.ZERO()
         if Key.getKey("Left").pressed:
             # print(Key.getKey("Shoot").pressed)
-            delta += Util.Vector2.W()
+            delta += Vector2.W()
         if Key.getKey("Right").pressed:
-            delta += Util.Vector2.E()
+            delta += Vector2.E()
             # print(Key.getKey("Right").history)
         if Key.getKey("Up").pressed:
-            delta += Util.Vector2.N()
+            delta += Vector2.N()
         if Key.getKey("Down").pressed:
-            delta += Util.Vector2.S()
-        if (delta.x == 0) != (delta.y == 0):
+            delta += Vector2.S()
+        if delta.x or delta.y:
             self.facing = delta
         delta.normalize(self.speed)
         self.moveBy(delta)
@@ -146,8 +247,12 @@ class Player(Damageable, Shooter):
         if Key.getKey("Shoot").pressed and self.shootCD.ended():
             self.shoot()
     def draw(self, canvas):
-        self.body.draw(canvas, fill="red")
+        self.body.draw(canvas, fill="blue")
+        x, y = (self.pos+self.facing*2).unpack()
+        canvas.create_oval(x-5, y-5, x+5, y+5, fill="black")
         super().draw(canvas)
+        canvas.create_text(WIDTH+MARGIN, 200+MARGIN, text=f"Health: {self.health}",
+                           font="Arial 30", anchor="nw")
 
     def __repr__(self):
         return f"Player({self.pos.x} {self.pos.y})"
