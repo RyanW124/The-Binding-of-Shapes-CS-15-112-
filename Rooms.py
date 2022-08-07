@@ -83,7 +83,8 @@ class DungeonRoom(Generation.Room):
                 i.draw(canvas, fill=color)
         for i in self.obstacles+self.monsters:
             i.draw(canvas)
-    # written with reference to TP guide on pathfinding
+    # written with some reference to TP guide on pathfinding but using a priority queue instead of a
+    # list of unvisited nodes
     def djikstra(self):
         r, c = XYtoRC(self.player.pos.x, self.player.pos.y)
         if r == self.playerR and self.playerC == c:

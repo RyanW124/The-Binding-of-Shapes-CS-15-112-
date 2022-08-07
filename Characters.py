@@ -61,7 +61,7 @@ class Monster(Damageable):
 
 class Fly(Monster):
     def __init__(self, row, col, player, *, absolutePos=False):
-        super().__init__(row, col, player, 2, 5, 5, "blue", absolutePos=absolutePos)
+        super().__init__(row, col, player, 2, 5, 5, "red", absolutePos=absolutePos)
     def update(self):
         super(Fly, self).update()
         delta = self.player.pos - self.pos
@@ -75,7 +75,7 @@ class Fly(Monster):
 
 class Gaper(Monster):
     def __init__(self, row, col, player):
-        super().__init__(row, col, player, 3, 30, 10, "blue")
+        super().__init__(row, col, player, 3, 30, 10, "red")
         self.moving = 0
         self.direction = None
         self.maxMoving = SIZE/self.speed
@@ -127,7 +127,7 @@ class DukeOfFlies(Monster):
     MAXORBIT = 4
     MAXSPAWN = 12
     def __init__(self, row, col, player):
-        super().__init__(row, col, player, 3, 70, 1, "blue", )
+        super().__init__(row, col, player, 3, 70, 110, "red", )
         self.delta = Vector2.N() if random.random() >.5 else Vector2.S()
         self.delta += Vector2.E() if random.random() >.5 else Vector2.W()
         self.orbits = []

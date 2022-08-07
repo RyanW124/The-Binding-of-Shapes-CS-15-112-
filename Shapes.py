@@ -87,8 +87,8 @@ class Rect:
             raise ValueError("Invalid anchor")
 
     def collide(self, obj, y=None):
-        if y is not None:
-            Collision.pointRect(obj, y, self)
+        if isinstance(y, int):
+            return Collision.pointRect(obj, y, self)
         elif isinstance(obj, Circle):
             return Collision.circleRect(obj, self)
         elif isinstance(obj, Rect):

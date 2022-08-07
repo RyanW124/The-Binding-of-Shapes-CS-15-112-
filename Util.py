@@ -10,8 +10,6 @@ EXTRA = 5
 MULTIPLIER = 1.33
 TOTALWIDTH=WIDTH+UIBAR
 
-GAME, LOST = MODES = range(2)
-
 
 # code from hw starter files
 def roundHalfUp(d):

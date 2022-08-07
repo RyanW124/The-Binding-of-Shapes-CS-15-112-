@@ -27,7 +27,7 @@ class Grid:
         self.rooms = []
         self.chooseRoom()
         self.pos = 0
-        self.rooms = [(BossRoom if r.id == 1 else DungeonRoom)(r, self.player) for r in self.rooms]
+        self.rooms = [(BossRoom if r.id == len(self.rooms)-1 else DungeonRoom)(r, self.player) for r in self.rooms]
         for r in self.rooms:
             self[r.r, r.c] = r
         for r in self.rooms:
