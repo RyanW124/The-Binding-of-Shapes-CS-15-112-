@@ -79,7 +79,7 @@ class Horf(Monster, Shooter):
 
     def shoot(self):
         for d in [Vector2.N(), Vector2.S(), Vector2.E(), Vector2.W()]:
-            self.bullets.append(Projectiles.Bullet([self.player]+self.player.room.obstacles, self.pos, d * 10, 1, WIDTH, color="red"))
+            self.bullets.append(Projectiles.Bullet([self.player]+self.player.room.obstacles, self.pos, d * 10, 1, color="red"))
         self.CD.reset()
     def update(self):
         super().update()
@@ -202,10 +202,10 @@ class DukeOfFlies(Monster):
 
 
 class Player(Damageable, Shooter):
-    POS = [Vector2(WIDTH/2, HEIGHT-SIZE),
-           Vector2(SIZE, HEIGHT/2),
-           Vector2(WIDTH/2, SIZE),
-           Vector2(WIDTH-SIZE, HEIGHT/2),
+    POS = [Vector2(WIDTH/2, HEIGHT-SIZE/2),
+           Vector2(SIZE/2, HEIGHT/2),
+           Vector2(WIDTH/2, SIZE/2),
+           Vector2(WIDTH-SIZE/2, HEIGHT/2),
            Vector2(WIDTH/2, HEIGHT/2)]
     def __init__(self, grid):
         super().__init__(10, 6)

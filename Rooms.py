@@ -13,7 +13,6 @@ class DungeonRoom(Generation.Room):
         3: Characters.Gaper,
         4: Characters.DukeOfFlies,
         5: Characters.Horf
-
     }
 
     def __init__(self, room, player):
@@ -96,9 +95,9 @@ class DungeonRoom(Generation.Room):
         distance = [[float('inf')] * COLS for _ in range(ROWS)]
         distance[r][c] = 0
         queue = [(r, c)]
+        visited[r][c] = True
         while queue:
             r, c = min(queue, key=lambda cell: distance[cell[0]][cell[1]])
-            visited[r][c] = True
             queue.remove((r, c))
             d = distance[r][c] + 1
             for dr, dc in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
@@ -107,6 +106,7 @@ class DungeonRoom(Generation.Room):
                 nr, nc = r+dr, c+dc
                 if self.map[nr][nc] or visited[nr][nc]:
                     continue
+                visited[nr][nc] = True
                 queue.append((nr, nc))
                 distance[nr][nc] = min(distance[nr][nc], d)
         self.distances = distance

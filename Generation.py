@@ -63,7 +63,9 @@ class Grid:
         r, c = random.randint(0, self.size - 1), random.randint(0, self.size - 1)
         self.hub = self[r, c]
         queue = [self.hub]
-        i = 0
+        self.rooms.append(self.hub)
+        i = 1
+        self.hub.id = 0
         while len(self.rooms) < self.n and queue:
             room = queue.pop(0)
             for nextRoom in room.neighbors:
@@ -71,6 +73,7 @@ class Grid:
                     self.rooms.append(nextRoom)
                     nextRoom.id = i
                     i += 1
+
                     queue.append(nextRoom)
         self.end = self.rooms[-1]
         for r, row in enumerate(self.grid):

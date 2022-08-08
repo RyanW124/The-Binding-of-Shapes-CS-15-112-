@@ -109,7 +109,8 @@ def help_redrawAll(app, canvas):
                  "Defeating the boss unlocks a trapdoor that leads to the next level"]
     elif app.page == 1:
         texts = ["Fly: flies towards you and deals contact damage (can fly over rocks)",
-                 "Gaper: walk towards you and deals contact damage"]
+                 "Gaper: walk towards you and deals contact damage",
+                 "Horf: Stays in place and shoots bullet in 4 directions"]
     elif app.page == 2:
         texts = ["Floats around the room diagonally and deals contact damage",
                  "Could spawn 3 flies that orbit around itself",
