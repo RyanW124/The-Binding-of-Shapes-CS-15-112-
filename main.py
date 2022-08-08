@@ -2,7 +2,6 @@ from cmu_112_graphics import *
 import Generation
 from Controller import *
 from Util import *
-import random
 
 def appStarted(app):
     app.timerDelay = 20
@@ -22,7 +21,7 @@ def initButtons(app):
     # Lost
     MyButton(TOTALWIDTH/2, HEIGHT/2+10, 300, 50, "Play Again", "lost",
              'black', 'white', reset, app, anchor="n")
-    MyButton(TOTALWIDTH/2, HEIGHT/2+60, 300, 50, "Back to Menu", "lost",
+    MyButton(TOTALWIDTH/2, HEIGHT/2+70, 300, 50, "Back to Menu", "lost",
              'black', 'white', setMode, app, 'menu', anchor='n')
     # Menu
     MyButton(TOTALWIDTH / 2, HEIGHT / 2, 300, 50, "Play", "menu",

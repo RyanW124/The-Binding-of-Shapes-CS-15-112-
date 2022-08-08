@@ -71,7 +71,29 @@ class Fly(Monster):
             delta.normalize(self.speed)
             self.move(delta)
 
-            # print(2)
+class Horf(Monster, Shooter):
+    def __init__(self, row, col, player):
+        super().__init__(row, col, player, 0, 30, 10, "red")
+        super(Damageable, self).__init__()
+        self.CD = Timer(50)
+
+    def shoot(self):
+        for d in [Vector2.N(), Vector2.S(), Vector2.E(), Vector2.W()]:
+            self.bullets.append(Projectiles.Bullet([self.player]+self.player.room.obstacles, self.pos, d * 10, 1, WIDTH, color="red"))
+        self.CD.reset()
+    def update(self):
+        super().update()
+        super(Damageable, self).update()
+        self.CD.update()
+        if self.CD.ended():
+            self.shoot()
+
+    def draw(self, canvas):
+        super().draw(canvas)
+        super(Damageable, self).draw(canvas)
+        canvas.create_text(self.pos.x, self.pos.y, text="Horf")
+
+
 
 class Gaper(Monster):
     def __init__(self, row, col, player):

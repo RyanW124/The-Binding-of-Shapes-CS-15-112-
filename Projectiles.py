@@ -2,13 +2,14 @@ from Shapes import Circle
 import Characters
 
 class Bullet:
-    def __init__(self, hits, pos, speed, damage, _range=450, r=5):
+    def __init__(self, hits, pos, speed, damage, _range=450, r=5, color="lightblue"):
         self.hits = hits
         self.speed = speed
         self.pos = self.start = pos
         self.range = _range
         self.damage = damage
         self.body = Circle(pos.x, pos.y, r)
+        self.color = color
 
     def hit(self, obj):
         if isinstance(obj, Characters.Damageable):
@@ -27,4 +28,4 @@ class Bullet:
         return False
 
     def draw(self, canvas):
-        self.body.draw(canvas)
+        self.body.draw(canvas, fill=self.color)

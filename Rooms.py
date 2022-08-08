@@ -11,7 +11,9 @@ class DungeonRoom(Generation.Room):
         1: Obstacles.Rock,
         2: Characters.Fly,
         3: Characters.Gaper,
-        4: Characters.DukeOfFlies
+        4: Characters.DukeOfFlies,
+        5: Characters.Horf
+
     }
 
     def __init__(self, room, player):
