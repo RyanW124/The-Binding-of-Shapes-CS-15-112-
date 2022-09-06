@@ -57,6 +57,9 @@ class Key:
 def game_keyPressed(app, event):
     if event.key in Key.buttonToKey:
         Key.getKeyFromButton(event.key).press()
+
+
+
     if event.key == "Escape":
         app.setMode(app, 'pause')
 
