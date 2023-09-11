@@ -7,5 +7,5 @@ To play the game, run the main.py file. No libraries needs to be installed.
 This game was made for the CMU CS 15-112 course.
 
 ![start](pngs/start.png)
-![gameplay](pngs/0.png)
-![gameplay](pngs/1.png)
+![gameplay](pngs/g0.png)
+![gameplay](pngs/g1.png)
